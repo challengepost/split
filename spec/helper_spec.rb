@@ -14,7 +14,7 @@ describe Split::Helper do
   describe "ab_test" do
     it "should assign a random alternative to a new user when there are an equal number of alternatives assigned" do
       ab_test('link_color', 'blue', 'red')
-      ['red', 'blue'].should include(ab_user['link_color'])
+      ['red', 'blue'].should include(ab_user.get_key('link_color'))
     end
 
     it "should increment the participation counter after assignment to a new user" do
@@ -67,7 +67,7 @@ describe Split::Helper do
 
     it "should allow the share of visitors see an alternative to be specificed" do
       ab_test('link_color', {'blue' => 0.8}, {'red' => 20})
-      ['red', 'blue'].should include(ab_user['link_color'])
+      ['red', 'blue'].should include(ab_user.get_key('link_color'))
     end
 
     it "should allow alternative weighting interface as a single hash" do
@@ -79,7 +79,7 @@ describe Split::Helper do
     it "should only let a user participate in one experiment at a time" do
       ab_test('link_color', 'blue', 'red')
       ab_test('button_size', 'small', 'big')
-      ab_user['button_size'].should eql('small')
+      ab_user.get_key('button_size').should eql('small')
       big = Split::Alternative.new('big', 'button_size')
       big.participant_count.should eql(0)
       small = Split::Alternative.new('small', 'button_size')
@@ -92,7 +92,7 @@ describe Split::Helper do
       end
       link_color = ab_test('link_color', 'blue', 'red')
       button_size = ab_test('button_size', 'small', 'big')
-      ab_user['button_size'].should eql(button_size)
+      ab_user.get_key('button_size').should eql(button_size)
       button_size_alt = Split::Alternative.new(button_size, 'button_size')
       button_size_alt.participant_count.should eql(1)
     end
@@ -118,9 +118,9 @@ describe Split::Helper do
 
       previous_completion_count = Split::Alternative.new(alternative_name, 'link_color').completed_count
 
-      session[:split].should eql("link_color" => alternative_name)
+      ab_user.to_hash.should eql("link_color" => alternative_name)
       finished('link_color')
-      session[:split].should == {}
+      ab_user.to_hash.should == {}
     end
 
     it "should not clear out the users session if reset is false" do
@@ -129,13 +129,12 @@ describe Split::Helper do
 
       previous_completion_count = Split::Alternative.new(alternative_name, 'link_color').completed_count
 
-      session[:split].should eql("link_color" => alternative_name)
+      ab_user.to_hash.should eql("link_color" => alternative_name)
       finished('link_color', :reset => false)
-      session[:split].should eql("link_color" => alternative_name)
+      ab_user.to_hash.should eql("link_color" => alternative_name)
     end
 
     it "should do nothing where the experiment was not started by this user" do
-      session[:split] = nil
       lambda { finished('some_experiment_not_started_by_the_user') }.should_not raise_exception
     end
   end
@@ -246,7 +245,7 @@ describe Split::Helper do
       experiment = Split::Experiment.find_or_create('link_color', 'blue', 'red')
       alternative_name = ab_test('link_color', 'blue', 'red')
       experiment.version.should eql(0)
-      session[:split].should eql({'link_color' => alternative_name})
+      ab_user.to_hash.should eql({'link_color' => alternative_name})
     end
 
     it "should save the version of the experiment to the session" do
@@ -254,7 +253,7 @@ describe Split::Helper do
       experiment.reset
       experiment.version.should eql(1)
       alternative_name = ab_test('link_color', 'blue', 'red')
-      session[:split].should eql({'link_color:1' => alternative_name})
+      ab_user.to_hash.should eql({'link_color:1' => alternative_name})
     end
 
     it "should load the experiment even if the version is not 0" do
@@ -262,7 +261,7 @@ describe Split::Helper do
       experiment.reset
       experiment.version.should eql(1)
       alternative_name = ab_test('link_color', 'blue', 'red')
-      session[:split].should eql({'link_color:1' => alternative_name})
+      ab_user.to_hash.should eql({'link_color:1' => alternative_name})
       return_alternative_name = ab_test('link_color', 'blue', 'red')
       return_alternative_name.should eql(alternative_name)
     end
@@ -270,7 +269,7 @@ describe Split::Helper do
     it "should reset the session of a user on an older version of the experiment" do
       experiment = Split::Experiment.find_or_create('link_color', 'blue', 'red')
       alternative_name = ab_test('link_color', 'blue', 'red')
-      session[:split].should eql({'link_color' => alternative_name})
+      ab_user.to_hash.should eql({'link_color' => alternative_name})
       alternative = Split::Alternative.new(alternative_name, 'link_color')
       alternative.participant_count.should eql(1)
 
@@ -280,7 +279,7 @@ describe Split::Helper do
       alternative.participant_count.should eql(0)
 
       new_alternative_name = ab_test('link_color', 'blue', 'red')
-      session[:split]['link_color:1'].should eql(new_alternative_name)
+      ab_user.to_hash['link_color:1'].should eql(new_alternative_name)
       new_alternative = Split::Alternative.new(new_alternative_name, 'link_color')
       new_alternative.participant_count.should eql(1)
     end
@@ -288,7 +287,7 @@ describe Split::Helper do
     it "should cleanup old versions of experiments from the session" do
       experiment = Split::Experiment.find_or_create('link_color', 'blue', 'red')
       alternative_name = ab_test('link_color', 'blue', 'red')
-      session[:split].should eql({'link_color' => alternative_name})
+      ab_user.to_hash.should eql({'link_color' => alternative_name})
       alternative = Split::Alternative.new(alternative_name, 'link_color')
       alternative.participant_count.should eql(1)
 
@@ -298,13 +297,13 @@ describe Split::Helper do
       alternative.participant_count.should eql(0)
 
       new_alternative_name = ab_test('link_color', 'blue', 'red')
-      session[:split].should eql({'link_color:1' => new_alternative_name})
+      ab_user.to_hash.should eql({'link_color:1' => new_alternative_name})
     end
 
     it "should only count completion of users on the current version" do
       experiment = Split::Experiment.find_or_create('link_color', 'blue', 'red')
       alternative_name = ab_test('link_color', 'blue', 'red')
-      session[:split].should eql({'link_color' => alternative_name})
+      ab_user.to_hash.should eql({'link_color' => alternative_name})
       alternative = Split::Alternative.new(alternative_name, 'link_color')
 
       experiment.reset

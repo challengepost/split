@@ -13,8 +13,8 @@ module Split
             clean_old_versions(experiment)
             begin_experiment(experiment) if exclude_visitor? or not_allowed_to_test?(experiment.key)
 
-            if ab_user[experiment.key] 
-              ret = ab_user[experiment.key]
+            if ab_user.get_key(experiment.key) 
+              ret = ab_user.get_key(experiment.key)
             else
               alternative = experiment.next_alternative
               alternative.increment_participation
@@ -44,10 +44,10 @@ module Split
     def finished(experiment_name, options = {:reset => true})
       return if exclude_visitor?
       return unless (experiment = Split::Experiment.find(experiment_name))
-      if alternative_name = ab_user[experiment.key]
+      if alternative_name = ab_user.get_key(experiment.key)
         alternative = Split::Alternative.new(alternative_name, experiment_name)
         alternative.increment_completion
-        session[:split].delete(experiment_name) if options[:reset]
+        ab_user.delete_key(experiment_name) if options[:reset]
       end
     rescue Errno::ECONNREFUSED => e
       raise unless Split.configuration.db_failover
@@ -60,11 +60,16 @@ module Split
 
     def begin_experiment(experiment, alternative_name = nil)
       alternative_name ||= experiment.control.name
-      ab_user[experiment.key] = alternative_name
+      ab_user.set_key(experiment.key, alternative_name)
     end
 
     def ab_user
-      session[:split] ||= {}
+      case Split.configuration.user_store
+      when :session_store
+        Split::SessionStore.new(session)
+      else
+        raise "user_store type '#{Split.configuration.user_store}' unrecognized"
+      end
     end
 
     def exclude_visitor?
@@ -76,18 +81,18 @@ module Split
     end
 
     def doing_other_tests?(experiment_key)
-      ab_user.keys.reject{|k| k == experiment_key}.length > 0
+      ab_user.get_keys.reject{|k| k == experiment_key}.length > 0
     end
 
     def clean_old_versions(experiment)
       old_versions(experiment).each do |old_key|
-        ab_user.delete old_key
+        ab_user.delete_key old_key
       end
     end
 
     def old_versions(experiment)
       if experiment.version > 0
-        ab_user.keys.select{|k| k.match(Regexp.new(experiment.name))}.reject{|k| k == experiment.key}
+        ab_user.get_keys.select{|k| k.match(Regexp.new(experiment.name))}.reject{|k| k == experiment.key}
       else
         []
       end

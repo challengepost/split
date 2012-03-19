@@ -3,6 +3,7 @@ ENV['RACK_ENV'] = "test"
 require 'rubygems'
 require 'bundler/setup'
 require 'split'
+require 'split/session_store'
 require 'ostruct'
 
 def session
