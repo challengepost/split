@@ -227,6 +227,26 @@ And our initializer:
     split_config = YAML.load_file(rails_root + '/config/split.yml')
     Split.redis = split_config[rails_env]
 
+### User Store
+
+By default, Stay uses the Rack session to keep track of users.  If you would
+prefer to use Redis (for example if you would like to split test emails), you can
+do so by setting the `user_store` config var:
+
+    Split.configure do |config|
+      config.user_store = :redis_store
+    end
+
+You'll need to explicitly tell Split which user you're testing for by calling
+`ab_user.set_id` with a user-specific identifier.  For instance:
+
+    ab_user.set_id(current_user.id)
+    ab_test(:something, 'some', 'alternates') do |choice|
+      puts choice
+    end
+
+The Redis store uses the user id as a namespace.
+
 ## Namespaces
 
 If you're running multiple, separate instances of Split you may want

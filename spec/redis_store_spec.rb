@@ -39,6 +39,19 @@ describe Split::RedisStore do
     @store.to_hash.should eql({'foo' => 'bar', 'baz' => 'bar'})
   end
 
+  it "namespaces to user id" do
+    @store.set_id('hello')
+    @store.set_key(:foo, 'bar')
+    @store.get_key(:foo).should eql('bar')
+
+    @store.set_id('kitty')
+    @store.set_key(:foo, 'baz')
+    @store.get_key(:foo).should eql('baz')
+
+    @store.set_id('hello')
+    @store.get_key(:foo).should eql('bar')
+  end
+
   it "loads and performs as a Split user store" do
     Split.configure do |config|
       config.user_store = :redis_store
