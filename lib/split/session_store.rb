@@ -24,7 +24,7 @@ module Split
     end
 
     def to_hash
-      Marshal.load(Marshal.dump(@session))
+      @session.clone
     end
 
     class SessionNotFoundError < StandardError
