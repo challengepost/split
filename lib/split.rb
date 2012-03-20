@@ -3,6 +3,8 @@ require 'split/alternative'
 require 'split/helper'
 require 'split/version'
 require 'split/configuration'
+require 'split/session_store'
+require 'split/redis_store'
 require 'redis/namespace'
 
 module Split
