@@ -55,7 +55,11 @@ module Split
     end
 
     def override(experiment_name, alternatives)
-      params[experiment_name] if defined?(params) && alternatives.include?(params[experiment_name])
+      begin
+        params[experiment_name] if alternatives.include?(params[experiment_name])
+      rescue
+        nil
+      end
     end
 
     def begin_experiment(experiment, alternative_name = nil)
@@ -101,11 +105,12 @@ module Split
     end
 
     def is_robot?
+      return false if request.nil?
       request.user_agent =~ Split.configuration.robot_regex
     end
 
     def is_ignored_ip_address?
-      if Split.configuration.ignore_ip_addresses.any?
+      if Split.configuration.ignore_ip_addresses.any? && !request.nil?
         Split.configuration.ignore_ip_addresses.include?(request.ip)
       else
         false
