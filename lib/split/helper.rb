@@ -1,5 +1,7 @@
 module Split
   module Helper
+    attr_accessor :ab_user
+
     def ab_test(experiment_name, control, *alternatives)
       puts 'WARNING: You should always pass the control alternative through as the second argument with any other alternatives as the third because the order of the hash is not preserved in ruby 1.8' if RUBY_VERSION.match(/1\.8/) && alternatives.length.zero?
       begin
@@ -68,7 +70,7 @@ module Split
     end
 
     def ab_user
-      case Split.configuration.user_store
+      @ab_user ||= case Split.configuration.user_store
       when :session_store
         Split::SessionStore.new(session)
       when :redis_store
@@ -105,12 +107,15 @@ module Split
     end
 
     def is_robot?
-      return false if request.nil?
-      request.user_agent =~ Split.configuration.robot_regex
+      if user_agent = request.try(:user_agent)
+        user_agent =~ Split.configuration.robot_regex
+      else
+        false
+      end
     end
 
     def is_ignored_ip_address?
-      if Split.configuration.ignore_ip_addresses.any? && !request.nil?
+      if Split.configuration.ignore_ip_addresses.any? && request.try(:ip)
         Split.configuration.ignore_ip_addresses.include?(request.ip)
       else
         false

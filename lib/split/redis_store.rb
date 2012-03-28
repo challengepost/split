@@ -30,7 +30,7 @@ module Split
     end
 
     def set_id(id)
-      @identifier = id
+      @identifier = id.to_s
     end
   end
 end
