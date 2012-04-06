@@ -6,6 +6,12 @@ require 'split'
 require 'split/session_store'
 require 'ostruct'
 
+RSpec.configure do |config|
+  config.before(:each) do
+    Split.store = nil
+  end
+end
+
 def session
   @session ||= {}
 end

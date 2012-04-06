@@ -10,6 +10,7 @@ require 'redis/namespace'
 module Split
   extend self
   attr_accessor :configuration
+  attr_accessor :store
 
   # Accepts:
   #   1. A 'hostname:port' string
@@ -55,7 +56,18 @@ module Split
   def configure
      self.configuration ||= Configuration.new
      yield(configuration)
-   end
+  end
+
+  def user_store
+    self.store ||= case self.configuration.user_store
+    when :session_store
+      Split::SessionStore.new(session)
+    when :redis_store
+      Split::RedisStore.new(Split.redis)
+    else
+      raise "user_store type '#{Split.configuration.user_store}' unrecognized"
+    end
+  end
 end
 
 Split.configure {}

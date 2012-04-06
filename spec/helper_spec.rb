@@ -7,7 +7,7 @@ describe Split::Helper do
 
   before(:each) do
     Split.redis.flushall
-    @session = {}
+    ab_user.session = {}
     params = nil
   end
 
