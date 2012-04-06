@@ -77,17 +77,21 @@ module Split
     end
 
     def is_robot?
-      unless request.nil?
+      begin
         request.user_agent =~ Split.configuration.robot_regex
-      else
+      rescue NameError
         false
       end
     end
 
     def is_ignored_ip_address?
-      if Split.configuration.ignore_ip_addresses.any? && !request.nil?
-        Split.configuration.ignore_ip_addresses.include?(request.ip)
-      else
+      begin
+        if Split.configuration.ignore_ip_addresses.any?
+          Split.configuration.ignore_ip_addresses.include?(request.ip)
+        else
+          false
+        end
+      rescue NameError
         false
       end
     end
