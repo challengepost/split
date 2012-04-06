@@ -27,7 +27,7 @@ module Split
     def finished(experiment_name, options = {:reset => true})
       return if exclude_visitor? or !Split.configuration.enabled
       return unless (experiment = Split::Experiment.find(experiment_name))
-      if alternative_name = ab_user[experiment.key]
+      if alternative_name = ab_user.get_key(experiment.key)
         alternative = Split::Alternative.new(alternative_name, experiment_name)
         alternative.increment_completion
         ab_user.delete_key(experiment_name) if options[:reset]
@@ -111,8 +111,8 @@ module Split
             clean_old_versions(experiment)
             begin_experiment(experiment) if exclude_visitor? or not_allowed_to_test?(experiment.key)
 
-            if ab_user[experiment.key]
-              ret = ab_user[experiment.key]
+            if ab_user.get_key(experiment.key)
+              ret = ab_user.get_key(experiment.key)
             else
               alternative = experiment.next_alternative
               alternative.increment_participation

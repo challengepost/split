@@ -20,4 +20,4 @@ module Split
       @user_identifier = nil # a proc for determining the user scope if not using sessions
     end
   end
-
+end
