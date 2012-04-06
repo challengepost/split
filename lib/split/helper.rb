@@ -107,15 +107,15 @@ module Split
     end
 
     def is_robot?
-      if user_agent = request.try(:user_agent)
-        user_agent =~ Split.configuration.robot_regex
+      unless request.nil?
+        request.user_agent =~ Split.configuration.robot_regex
       else
         false
       end
     end
 
     def is_ignored_ip_address?
-      if Split.configuration.ignore_ip_addresses.any? && request.try(:ip)
+      if Split.configuration.ignore_ip_addresses.any? && !request.nil?
         Split.configuration.ignore_ip_addresses.include?(request.ip)
       else
         false
