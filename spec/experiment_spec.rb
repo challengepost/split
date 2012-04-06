@@ -28,7 +28,7 @@ describe Split::Experiment do
 
     Split::Experiment.find('basket_text').start_time.should == experiment_start_time
   end
-  
+
   it "should handle not having a start time" do
     experiment_start_time = Time.parse("Sat Mar 03 14:01:03")
     Time.stub(:now => experiment_start_time)
@@ -187,7 +187,7 @@ describe Split::Experiment do
 
   describe 'specifying weights' do
     it "should work for a new experiment" do
-      experiment = Split::Experiment.find_or_create('link_color', { 'blue' => 1, 'red' => 2 })
+      experiment = Split::Experiment.find_or_create('link_color', {'blue' => 1}, {'red' => 2 })
 
       experiment.alternatives.map(&:weight).should == [1, 2]
     end
@@ -196,8 +196,11 @@ describe Split::Experiment do
       experiment = Split::Experiment.find_or_create('link_color', 'blue', 'red')
       experiment.save
 
-      same_experiment = Split::Experiment.find_or_create('link_color', { 'blue' => 1, 'red' => 2 })
+      same_experiment = Split::Experiment.find_or_create('link_color', {'blue' => 1}, {'red' => 2 })
       same_experiment.alternatives.map(&:weight).should == [1, 2]
     end
   end
+
+
+
 end

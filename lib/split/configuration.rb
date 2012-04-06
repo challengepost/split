@@ -5,6 +5,7 @@ module Split
     attr_accessor :db_failover
     attr_accessor :db_failover_on_db_error
     attr_accessor :allow_multiple_experiments
+    attr_accessor :enabled
     attr_accessor :user_store
     attr_accessor :user_identifier
 
@@ -14,8 +15,9 @@ module Split
       @db_failover = false
       @db_failover_on_db_error = proc{|error|} # e.g. use Rails logger here
       @allow_multiple_experiments = false
+      @enabled = true
       @user_store = :session_store
       @user_identifier = nil # a proc for determining the user scope if not using sessions
     end
   end
-end
+

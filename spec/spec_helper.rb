@@ -5,6 +5,7 @@ require 'bundler/setup'
 require 'split'
 require 'split/session_store'
 require 'ostruct'
+require 'complex' if RUBY_VERSION.match(/1\.8/)
 
 RSpec.configure do |config|
   config.before(:each) do
