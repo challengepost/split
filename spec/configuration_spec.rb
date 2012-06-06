@@ -10,5 +10,6 @@ describe Split::Configuration do
     config.db_failover_on_db_error.should be_a Proc
     config.allow_multiple_experiments.should be_false
     config.enabled.should be_true
+    config.user_store.should eql(:session_store)
   end
 end

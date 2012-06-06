@@ -1,5 +1,7 @@
 module Split
   module Helper
+    attr_accessor :ab_user
+
     def ab_test(experiment_name, control, *alternatives)
 
       puts 'WARNING: You should always pass the control alternative through as the second argument with any other alternatives as the third because the order of the hash is not preserved in ruby 1.8' if RUBY_VERSION.match(/1\.8/) && alternatives.length.zero?
@@ -25,10 +27,10 @@ module Split
     def finished(experiment_name, options = {:reset => true})
       return if exclude_visitor? or !Split.configuration.enabled
       return unless (experiment = Split::Experiment.find(experiment_name))
-      if alternative_name = ab_user[experiment.key]
+      if alternative_name = ab_user.get_key(experiment.key)
         alternative = Split::Alternative.new(alternative_name, experiment_name)
         alternative.increment_completion
-        session[:split].delete(experiment_name) if options[:reset]
+        ab_user.delete_key(experiment_name) if options[:reset]
       end
     rescue Errno::ECONNREFUSED => e
       raise unless Split.configuration.db_failover
@@ -41,11 +43,11 @@ module Split
 
     def begin_experiment(experiment, alternative_name = nil)
       alternative_name ||= experiment.control.name
-      ab_user[experiment.key] = alternative_name
+      ab_user.set_key(experiment.key, alternative_name)
     end
 
     def ab_user
-      session[:split] ||= {}
+      Split.user_store
     end
 
     def exclude_visitor?
@@ -57,31 +59,39 @@ module Split
     end
 
     def doing_other_tests?(experiment_key)
-      ab_user.keys.reject { |k| k == experiment_key }.length > 0
+      ab_user.get_keys.reject { |k| k == experiment_key }.length > 0
     end
 
     def clean_old_versions(experiment)
       old_versions(experiment).each do |old_key|
-        ab_user.delete old_key
+        ab_user.delete_key old_key
       end
     end
 
     def old_versions(experiment)
       if experiment.version > 0
-        ab_user.keys.select { |k| k.match(Regexp.new(experiment.name)) }.reject { |k| k == experiment.key }
+        ab_user.get_keys.select { |k| k.match(Regexp.new(experiment.name)) }.reject { |k| k == experiment.key }
       else
         []
       end
     end
 
     def is_robot?
-      request.user_agent =~ Split.configuration.robot_regex
+      begin
+        request.user_agent =~ Split.configuration.robot_regex
+      rescue NameError
+        false
+      end
     end
 
     def is_ignored_ip_address?
-      if Split.configuration.ignore_ip_addresses.any?
-        Split.configuration.ignore_ip_addresses.include?(request.ip)
-      else
+      begin
+        if Split.configuration.ignore_ip_addresses.any?
+          Split.configuration.ignore_ip_addresses.include?(request.ip)
+        else
+          false
+        end
+      rescue NameError
         false
       end
     end
@@ -105,8 +115,8 @@ module Split
             clean_old_versions(experiment)
             begin_experiment(experiment) if exclude_visitor? or not_allowed_to_test?(experiment.key)
 
-            if ab_user[experiment.key]
-              ret = ab_user[experiment.key]
+            if ab_user.get_key(experiment.key)
+              ret = ab_user.get_key(experiment.key)
             else
               alternative = experiment.next_alternative
               alternative.increment_participation
